@@ -157,19 +157,19 @@ class MyAI ( Agent ):
     Output:
         -N/a
 
-    - When we feel a bump, and we have to revert the action, also setting max bounds to go to
+        - When we feel a bump, and we have to revert the action internally, also setting max bounds to go to
+        - Only useful for setting the max bounds for the right and upper sides. 
     '''    
     def revertAction(self):
+        print('in revert')
+        self.worldMatrix[self.row][self.col] = -1
         if (self.direction == 'U'):
+            self.maxRow = self.row
             self.row -= 1
-        elif (self.direction == 'L'):
-            self.col 
-        elif (self.direction == 'D'):
-            self.direction = 'R'
-            return
+
         elif (self.direction == 'R'):
-            self.direction = 'U'
-            return
+            self.maxCol = self.col
+            self.col -= 1
 
     '''
     Input:
@@ -181,6 +181,11 @@ class MyAI ( Agent ):
     - This is the main function that will be called in order to find the best plan of action
     '''
     def getAction( self, stench, breeze, glitter, bump, scream ):
+        if (bump):
+            print('REVERT')
+            self.revertAction()
+
+
         print("stench: ", stench)
         print("breeze: ", breeze)
         print("bump: ", bump)
