@@ -51,7 +51,8 @@ class MyAI ( Agent ):
         N/A
 
     Output:
-        N/A
+        1 - if successful 
+        -1 - if not successful 
 
         - updates the location internally where the agent is within the world based on direction
     '''
@@ -59,12 +60,17 @@ class MyAI ( Agent ):
     def updateRowCol(self):
         if self.direction == 'U' and self.row - 1 > -1 :
             self.row -= 1
+            return 1
         if self.direction == 'D' and self.row + 1 < self.maxRow:
             self.row += 1
+            return 1
         if self.direction == 'R' and self.col + 1 < self.maxCol:
             self.col += 1
+            return 1
         if self.direction == 'L' and self.col - 1 > -1:
             self.col -= 1
+            return 1
+        return -1
 
     '''
     Input:
@@ -154,7 +160,16 @@ class MyAI ( Agent ):
     - When we feel a bump, and we have to revert the action, also setting max bounds to go to
     '''    
     def revertAction(self):
-        pass
+        if (self.direction == 'U'):
+            self.row -= 1
+        elif (self.direction == 'L'):
+            self.col 
+        elif (self.direction == 'D'):
+            self.direction = 'R'
+            return
+        elif (self.direction == 'R'):
+            self.direction = 'U'
+            return
 
     '''
     Input:
