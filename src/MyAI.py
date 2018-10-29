@@ -19,6 +19,9 @@
 
 from Agent import Agent
 
+hasArrow = True
+wumpusKilled = False
+
 class MyAI ( Agent ):
 
     '''
@@ -181,21 +184,31 @@ class MyAI ( Agent ):
     - This is the main function that will be called in order to find the best plan of action
     '''
     def getAction( self, stench, breeze, glitter, bump, scream ):
-        if (bump):
-            print('REVERT')
-            self.revertAction()
-
-
-        print("stench: ", stench)
-        print("breeze: ", breeze)
-        print("bump: ", bump)
+        
         self.updateMap(stench, breeze, glitter, bump, scream)
         self.printMap()
         print('row: ', self.row, 'col: ', self.col)
         print('direction: ', self.direction)
-
-
-
+        
+        #starting spot
+        if breeze:
+            print("breeze: ", breeze)
+            return Agent.Action.CLIMB
+                
+        if stench and not wumpusKilled:
+            print("stench: ", stench)
+            hasArrow = False
+            return Agent.Action.SHOOT
+        
+        if scream:
+            print("scream: ", scream)
+            self.updateRowCol()
+            wumpusKilled = True
+            return Agent.Action.FORWARD
+        '''
+        if (bump):
+            print('REVERT')
+            self.revertAction()
         print ( "Press 'w' to Move Forward  'a' to 'Turn Left' 'd' to 'Turn Right'" )
         
         #Get Input
@@ -221,7 +234,7 @@ class MyAI ( Agent ):
             
         if userInput[0] == 'g':
             return Agent.Action.GRAB
-        return Agent.Action.CLIMB
+        return Agent.Action.CLIMB'''
 
 
 
