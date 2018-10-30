@@ -62,6 +62,7 @@ class MyAI ( Agent ):
     '''
     # direction: u d l r (up down left right)
     def updateRowCol(self):
+        #instead of checking bounds with each if statement, check at once here, then check direction
         if self.isFrontClear():
             if self.direction == 'U':
                 self.row -= 1
@@ -266,7 +267,9 @@ class MyAI ( Agent ):
                 self.hasArrow = False
                 return Agent.Action.SHOOT
 
-        '''if scream:
+        '''
+        trying to make scream and stench more general, instead of specific to start state
+        if scream:
             #stench = False if ( self.wumpusKilled ) else stench
             self.updateMap(stench, breeze, glitter, bump, scream)
             print("scream: ", scream)
