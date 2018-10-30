@@ -149,10 +149,13 @@ class MyAI ( Agent ):
     Will update the map based on what is given in the input. 
     '''
     def updateMap(self,stench, breeze, glitter, bump, scream):
+        print("update mpa")
         if (stench or breeze): #lowkey unsafe area
+            print('breeze')
             self.worldMatrix[self.row][self.col] = 'S'
             self.updateSurroundingArea('P')
         else:
+            print("got to this safe area")
             self.worldMatrix[self.row][self.col] = 'S'
             self.updateSurroundingArea('S')
 
@@ -187,9 +190,10 @@ class MyAI ( Agent ):
     - This is the main function that will be called in order to find the best plan of action
     '''
     def getAction( self, stench, breeze, glitter, bump, scream ):
-        stench = stench if ( not self.wumpusKilled ) else False
+        stench = False if ( self.wumpusKilled ) else stench
 
         self.updateMap(stench, breeze, glitter, bump, scream)
+        print("update mpa called")
         self.printMap()
         print('row: ', self.row, 'col: ', self.col)
         print('direction: ', self.direction)
@@ -201,15 +205,20 @@ class MyAI ( Agent ):
                 return Agent.Action.CLIMB
 
             if scream:
+                stench = False if ( self.wumpusKilled ) else stench
+                self.updateMap(stench, breeze, glitter, bump, scream)
                 print("scream: ", scream)
                 self.updateRowCol()
                 self.wumpusKilled = True
+
                 return Agent.Action.FORWARD
     
             if stench and not self.wumpusKilled:
                 print("stench: ", stench)
                 self.hasArrow = False
                 return Agent.Action.SHOOT
+
+
         
         '''
         if (bump):
