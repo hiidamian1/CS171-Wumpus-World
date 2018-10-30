@@ -19,8 +19,8 @@
 
 from Agent import Agent
 
-hasArrow = True
-wumpusKilled = False
+#hasArrow = True
+#wumpusKilled = False
 
 class MyAI ( Agent ):
 
@@ -35,7 +35,8 @@ class MyAI ( Agent ):
         self.row, self.col = 6,0
         self.direction = 'R'
         self.maxRow, self.maxCol = 7,7
-
+        self.hasArrow = True
+        self.wumpusKilled = False
     '''
     Input: N/a
 
@@ -191,20 +192,22 @@ class MyAI ( Agent ):
         print('direction: ', self.direction)
         
         #starting spot
-        if breeze:
-            print("breeze: ", breeze)
-            return Agent.Action.CLIMB
-                
-        if stench and not wumpusKilled:
-            print("stench: ", stench)
-            hasArrow = False
-            return Agent.Action.SHOOT
+        if self.row == 6 and self.col == 0:
+            if breeze:
+                print("breeze: ", breeze)
+                return Agent.Action.CLIMB
+
+            if scream:
+                print("scream: ", scream)
+                self.updateRowCol()
+                self.wumpusKilled = True
+                return Agent.Action.FORWARD
+    
+            if stench and not self.wumpusKilled:
+                print("stench: ", stench)
+                self.hasArrow = False
+                return Agent.Action.SHOOT
         
-        if scream:
-            print("scream: ", scream)
-            self.updateRowCol()
-            wumpusKilled = True
-            return Agent.Action.FORWARD
         '''
         if (bump):
             print('REVERT')
