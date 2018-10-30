@@ -34,7 +34,7 @@ class MyAI ( Agent ):
         self.worldMatrix = [[-1,-1,-1,-1,-1,-1,-1] for i in range(7)]
         self.row, self.col = 6,0
         self.direction = 'R'
-        self.maxRow, self.maxCol = 7,7
+        self.maxRow, self.maxCol = 0,6
         self.hasArrow = True
         self.wumpusKilled = False
     '''
@@ -62,16 +62,16 @@ class MyAI ( Agent ):
     '''
     # direction: u d l r (up down left right)
     def updateRowCol(self):
-        if self.direction == 'U' and self.row - 1 > -1 :
+        if self.direction == 'U' and self.row - 1 >= self.maxRow :
             self.row -= 1
             return 1
-        if self.direction == 'D' and self.row + 1 < self.maxRow:
+        if self.direction == 'D' and self.row + 1 <= 6:
             self.row += 1
             return 1
-        if self.direction == 'R' and self.col + 1 < self.maxCol:
+        if self.direction == 'R' and self.col + 1 <= self.maxCol:
             self.col += 1
             return 1
-        if self.direction == 'L' and self.col - 1 > -1:
+        if self.direction == 'L' and self.col - 1 >= 0:
             self.col -= 1
             return 1
         return -1
@@ -125,16 +125,16 @@ class MyAI ( Agent ):
     - Will update the surrounding areas with the given flag, if it's not a Safe space 
     '''
     def updateSurroundingArea(self, flag):
-        if self.row - 1 > -1:
+        if self.row - 1 >= self.maxRow:
             if (self.worldMatrix[self.row - 1][self.col] != 'S'):
                 self.worldMatrix[self.row - 1][self.col] = flag
-        if self.row + 1 < self.maxRow:
+        if self.row + 1 <= 6:
             if (self.worldMatrix[self.row + 1][self.col] != 'S'):
                 self.worldMatrix[self.row + 1][self.col] = flag
-        if self.col - 1 > -1:
+        if self.col - 1 >= 0:
             if (self.worldMatrix[self.row][self.col - 1] != 'S'):
                 self.worldMatrix[self.row][self.col - 1] = flag
-        if self.col + 1 < self.maxCol:
+        if self.col + 1 <= self.maxCol:
             if (self.worldMatrix[self.row][self.col + 1] != 'S'):
                 self.worldMatrix[self.row][self.col + 1] = flag       
 
@@ -152,7 +152,9 @@ class MyAI ( Agent ):
         if (stench or breeze): #lowkey unsafe area
             self.worldMatrix[self.row][self.col] = 'S'
             self.updateSurroundingArea('P')
-        self.worldMatrix[self.row][self.col] = 'S'
+        else:
+            self.worldMatrix[self.row][self.col] = 'S'
+            self.updateSurroundingArea('S')
 
     '''
     Input:
@@ -168,11 +170,11 @@ class MyAI ( Agent ):
         print('in revert')
         self.worldMatrix[self.row][self.col] = -1
         if (self.direction == 'U'):
-            self.maxRow = self.row
+            self.maxRow = self.row -1
             self.row -= 1
 
         elif (self.direction == 'R'):
-            self.maxCol = self.col
+            self.maxCol = self.col -1
             self.col -= 1
 
     '''
@@ -185,7 +187,8 @@ class MyAI ( Agent ):
     - This is the main function that will be called in order to find the best plan of action
     '''
     def getAction( self, stench, breeze, glitter, bump, scream ):
-        
+        stench = stench if ( not self.wumpusKilled ) else False
+
         self.updateMap(stench, breeze, glitter, bump, scream)
         self.printMap()
         print('row: ', self.row, 'col: ', self.col)
