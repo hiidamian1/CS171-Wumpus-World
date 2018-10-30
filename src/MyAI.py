@@ -62,19 +62,67 @@ class MyAI ( Agent ):
     '''
     # direction: u d l r (up down left right)
     def updateRowCol(self):
-        if self.direction == 'U' and self.row - 1 >= self.maxRow :
-            self.row -= 1
-            return 1
-        if self.direction == 'D' and self.row + 1 <= 6:
-            self.row += 1
-            return 1
-        if self.direction == 'R' and self.col + 1 <= self.maxCol:
-            self.col += 1
-            return 1
-        if self.direction == 'L' and self.col - 1 >= 0:
-            self.col -= 1
-            return 1
+        if self.isFrontClear():
+            if self.direction == 'U':
+                self.row -= 1
+                return 1
+            if self.direction == 'D':
+                self.row += 1
+                return 1
+            if self.direction == 'R':
+                self.col += 1
+                return 1
+            if self.direction == 'L':
+                self.col -= 1
+                return 1
         return -1
+
+    '''
+    Input: 
+        N/A
+    Output:
+        True or False
+
+    Reports whether or not there is a wall in front of the user
+    '''
+    def isFrontClear(self):
+        if self.direction == 'U':
+            return self.row - 1 >= self.maxRow
+        if self.direction == 'D':
+            return self.row + 1 <= 6
+        if self.direction == 'R':
+            return self.col + 1 <= self.maxCol
+        if self.direction == 'L':
+            return self.col -1 >= 0
+
+    '''
+    Input:
+        stench, breeze, glitter(?), bump(?), scream
+    Output:
+        True or False
+    
+    Reports whether or not the spot immediately in front of the user is safe or not (does not have pit or wumpus)
+    '''
+    def isFrontSafe(self, stench, breeze, glitter, bump, scream):
+        #no percepts
+        if not stench and not breeze:
+            return True
+
+        #already marked as safe
+        if self.direction == 'U' and self.worldMatrix[self.row - 1][self.col] == 'S':
+            return True
+        if self.direction == 'D' and self.worldMatrix[self.row + 1][self.col] == 'S':
+            return True
+        if self.direction == 'L' and self.worldMatrix[self.row][self.col - 1] == 'S':
+            return True
+        if self.direction == 'R' and self.worldMatrix[self.row][self.col + 1] == 'S':
+            return True
+
+        #if scream and not breeze:
+        #    return True
+
+
+        return False
 
     '''
     Input:
@@ -193,11 +241,11 @@ class MyAI ( Agent ):
         stench = False if ( self.wumpusKilled ) else stench
 
         self.updateMap(stench, breeze, glitter, bump, scream)
-        print("update mpa called")
+        print("update map called")
         self.printMap()
         print('row: ', self.row, 'col: ', self.col)
         print('direction: ', self.direction)
-        
+        print("Front safe?: ", self.isFrontSafe(stench, breeze, glitter, bump, scream))
         #starting spot
         if self.row == 6 and self.col == 0:
             if breeze:
@@ -218,6 +266,25 @@ class MyAI ( Agent ):
                 self.hasArrow = False
                 return Agent.Action.SHOOT
 
+        '''if scream:
+            #stench = False if ( self.wumpusKilled ) else stench
+            self.updateMap(stench, breeze, glitter, bump, scream)
+            print("scream: ", scream)
+            self.updateRowCol()
+            self.wumpusKilled = True
+
+            return Agent.Action.FORWARD
+
+        if stench and not self.wumpusKilled:
+            print("stench: ", stench)
+            if self.isFrontClear() and not self.isFrontSafe():
+                self.hasArrow = False
+                return Agent.Action.SHOOT
+            else:
+                return Agent.Action.TURN_LEFT'''
+
+        if self.isFrontClear():
+            return Agent.Action.FORWARD
 
         
         '''
