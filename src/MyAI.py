@@ -37,6 +37,9 @@ class MyAI ( Agent ):
         self.maxRow, self.maxCol = 0,6
         self.hasArrow = True
         self.wumpusKilled = False
+        self.started = False
+        self.clockwise = False
+        self.pastMoves = [] #can use this for backtracking later, for now this is used to see if we've made a 180 degree turn 
     '''
     Input: N/a
 
@@ -48,7 +51,6 @@ class MyAI ( Agent ):
     def printMap(self):
         for row in self.worldMatrix:
             print(row)
-
 
     '''
     Input:
@@ -88,13 +90,14 @@ class MyAI ( Agent ):
     '''
     def isFrontClear(self):
         if self.direction == 'U':
+            print(self.row)
             return self.row - 1 >= self.maxRow
         if self.direction == 'D':
             return self.row + 1 <= 6
         if self.direction == 'R':
             return self.col + 1 <= self.maxCol
         if self.direction == 'L':
-            return self.col -1 >= 0
+            return self.col - 1 >= 0
 
     '''
     Input:
@@ -118,10 +121,6 @@ class MyAI ( Agent ):
             return True
         if self.direction == 'R' and self.worldMatrix[self.row][self.col + 1] == 'S':
             return True
-
-        #if scream and not breeze:
-        #    return True
-
 
         return False
 
@@ -164,6 +163,24 @@ class MyAI ( Agent ):
 
     '''
     Input:
+        N/A
+    Output:
+        True or False
+
+    Keeps track of whether we are going clockwise or counter clockwise. 
+    This determines which direction to turn when front is not safe/clear
+    and should help prevent getting stuck
+    '''
+    def updateClockwise(self):
+        if len(self.pastMoves) >= 2:
+            if self.pastMoves[-1] != "forward" or self.pastMoves[-2] != "forward":
+                if self.pastMoves[-1] == self.pastMoves[-2]:
+                    self.clockwise = not self.clockwise
+                    self.pastMoves.clear()
+        return self.clockwise
+    
+    '''
+    Input:
         flag - 
                 P - potentially unsafe
                 D - Do not go, 100% bad
@@ -200,11 +217,11 @@ class MyAI ( Agent ):
     def updateMap(self,stench, breeze, glitter, bump, scream):
         print("update mpa")
         if (stench or breeze): #lowkey unsafe area
-            print('breeze')
+            #print('breeze')
             self.worldMatrix[self.row][self.col] = 'S'
             self.updateSurroundingArea('P')
         else:
-            print("got to this safe area")
+            #print("got to this safe area")
             self.worldMatrix[self.row][self.col] = 'S'
             self.updateSurroundingArea('S')
 
@@ -219,7 +236,7 @@ class MyAI ( Agent ):
         - Only useful for setting the max bounds for the right and upper sides. 
     '''    
     def revertAction(self):
-        print('in revert')
+        #print('in revert')
         self.worldMatrix[self.row][self.col] = -1
         if (self.direction == 'U'):
             self.maxRow = self.row -1
@@ -241,31 +258,75 @@ class MyAI ( Agent ):
     def getAction( self, stench, breeze, glitter, bump, scream ):
         stench = False if ( self.wumpusKilled ) else stench
 
+        if glitter:
+            return Agent.Action.GRAB
+        
+        if (bump):
+            print('REVERT')
+            self.revertAction()
+
+        print("Clockwise: ", self.updateClockwise())
         self.updateMap(stench, breeze, glitter, bump, scream)
-        print("update map called")
+        #print("update map called")
         self.printMap()
         print('row: ', self.row, 'col: ', self.col)
         print('direction: ', self.direction)
         print("Front safe?: ", self.isFrontSafe(stench, breeze, glitter, bump, scream))
-        #starting spot
-        if self.row == 6 and self.col == 0:
+        
+        #start of game
+        if self.row == 6 and self.col == 0 and not self.started:
+            
+            #dip if theres a chance of a pit
             if breeze:
                 print("breeze: ", breeze)
                 return Agent.Action.CLIMB
 
+            #wumpus shot, front clear
             if scream:
-                stench = False if ( self.wumpusKilled ) else stench
-                self.updateMap(stench, breeze, glitter, bump, scream)
+                self.started = True
+                #stench = False if ( self.wumpusKilled ) else stench
+                #self.updateMap(stench, breeze, glitter, bump, scream)
                 print("scream: ", scream)
                 self.updateRowCol()
                 self.wumpusKilled = True
-
+                self.pastMoves.append("forward")
                 return Agent.Action.FORWARD
-    
+
+            #wumpus not shot, front still clear
+            if not self.hasArrow:
+                self.started = True
+                self.updateRowCol()
+                self.pastMoves.append("forward")
+                return Agent.Action.FORWARD
+
+            #shoot the arrow, wumpus may be in front of us
             if stench and not self.wumpusKilled:
                 print("stench: ", stench)
                 self.hasArrow = False
                 return Agent.Action.SHOOT
+
+        #climb out if we've returned to start
+        if self.row == 6 and self.col == 0 and self.started:
+            print("Back to start")
+            return Agent.Action.CLIMB
+
+
+        print("Clear? ", self.isFrontClear())
+        print("Safe? ", self.isFrontSafe(stench, breeze, glitter, bump, scream))
+
+        if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream):
+            self.updateRowCol()
+            self.started = True
+            self.pastMoves.append("forward")            
+            return Agent.Action.FORWARD
+        elif self.clockwise:
+            self.updateDirection("right")
+            self.pastMoves.append("right")
+            return Agent.Action.TURN_RIGHT
+        else:    
+            self.updateDirection("left")
+            self.pastMoves.append("left")
+            return Agent.Action.TURN_LEFT  
 
         '''
         trying to make scream and stench more general, instead of specific to start state
@@ -286,10 +347,6 @@ class MyAI ( Agent ):
             else:
                 return Agent.Action.TURN_LEFT'''
 
-        if self.isFrontClear():
-            return Agent.Action.FORWARD
-
-        
         '''
         if (bump):
             print('REVERT')
