@@ -19,9 +19,6 @@
 
 from Agent import Agent
 
-#hasArrow = True
-#wumpusKilled = False
-
 class MyAI ( Agent ):
 
     '''
@@ -90,7 +87,6 @@ class MyAI ( Agent ):
     '''
     def isFrontClear(self):
         if self.direction == 'U':
-            print(self.row)
             return self.row - 1 >= self.maxRow
         if self.direction == 'D':
             return self.row + 1 <= 6
@@ -172,11 +168,10 @@ class MyAI ( Agent ):
     and should help prevent getting stuck
     '''
     def updateClockwise(self):
-        if len(self.pastMoves) >= 2:
-            if self.pastMoves[-1] != "forward" or self.pastMoves[-2] != "forward":
-                if self.pastMoves[-1] == self.pastMoves[-2]:
-                    self.clockwise = not self.clockwise
-                    self.pastMoves.clear()
+        if self.pastMoves[-1] != "forward" and self.pastMoves[-2] != "forward":
+            if self.pastMoves[-1] == self.pastMoves[-2]:
+                self.clockwise = not self.clockwise
+                self.pastMoves.clear()
         return self.clockwise
     
     '''
@@ -215,7 +210,7 @@ class MyAI ( Agent ):
     Will update the map based on what is given in the input. 
     '''
     def updateMap(self,stench, breeze, glitter, bump, scream):
-        print("update mpa")
+        #print("update map")
         if (stench or breeze): #lowkey unsafe area
             #print('breeze')
             self.worldMatrix[self.row][self.col] = 'S'
@@ -262,23 +257,26 @@ class MyAI ( Agent ):
             return Agent.Action.GRAB
         
         if (bump):
-            print('REVERT')
+            #print('REVERT')
             self.revertAction()
-
-        print("Clockwise: ", self.updateClockwise())
+        
+        if len(self.pastMoves) >= 2:
+            #print("Clockwise: ", self.updateClockwise())
+            self.updateClockwise()
+        
         self.updateMap(stench, breeze, glitter, bump, scream)
         #print("update map called")
-        self.printMap()
-        print('row: ', self.row, 'col: ', self.col)
-        print('direction: ', self.direction)
-        print("Front safe?: ", self.isFrontSafe(stench, breeze, glitter, bump, scream))
+        #self.printMap()
+        #print('row: ', self.row, 'col: ', self.col)
+        #print('direction: ', self.direction)
+        #print("Front safe?: ", self.isFrontSafe(stench, breeze, glitter, bump, scream))
         
         #start of game
         if self.row == 6 and self.col == 0 and not self.started:
             
             #dip if theres a chance of a pit
             if breeze:
-                print("breeze: ", breeze)
+                #print("breeze: ", breeze)
                 return Agent.Action.CLIMB
 
             #wumpus shot, front clear
@@ -286,7 +284,7 @@ class MyAI ( Agent ):
                 self.started = True
                 #stench = False if ( self.wumpusKilled ) else stench
                 #self.updateMap(stench, breeze, glitter, bump, scream)
-                print("scream: ", scream)
+                #print("scream: ", scream)
                 self.updateRowCol()
                 self.wumpusKilled = True
                 self.pastMoves.append("forward")
@@ -301,18 +299,18 @@ class MyAI ( Agent ):
 
             #shoot the arrow, wumpus may be in front of us
             if stench and not self.wumpusKilled:
-                print("stench: ", stench)
+                #print("stench: ", stench)
                 self.hasArrow = False
                 return Agent.Action.SHOOT
 
         #climb out if we've returned to start
         if self.row == 6 and self.col == 0 and self.started:
-            print("Back to start")
+            #print("Back to start")
             return Agent.Action.CLIMB
 
 
-        print("Clear? ", self.isFrontClear())
-        print("Safe? ", self.isFrontSafe(stench, breeze, glitter, bump, scream))
+        #print("Clear? ", self.isFrontClear())
+        #print("Safe? ", self.isFrontSafe(stench, breeze, glitter, bump, scream))
 
         if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream):
             self.updateRowCol()
