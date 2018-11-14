@@ -36,7 +36,10 @@ class MyAI ( Agent ):
         self.wumpusKilled = False
         self.started = False
         self.clockwise = False
+        self.grabbedGold = False
+        self.turnCount = 0
         self.pastMoves = [] #can use this for backtracking later, for now this is used to see if we've made a 180 degree turn 
+        self.visited = {}
     '''
     Input: N/a
 
@@ -254,8 +257,20 @@ class MyAI ( Agent ):
         stench = False if ( self.wumpusKilled ) else stench
 
         if glitter:
+            self.grabbedGold = True
             return Agent.Action.GRAB
-        
+
+        if self.grabbedGold and self.turnCount < 2:
+            self.turnCount += 1
+            if self.clockwise:
+                self.updateDirection("right")
+                self.pastMoves.append("right")
+                return Agent.Action.TURN_RIGHT
+            else:    
+                self.updateDirection("left")
+                self.pastMoves.append("left")
+                return Agent.Action.TURN_LEFT
+
         if (bump):
             #print('REVERT')
             self.revertAction()
