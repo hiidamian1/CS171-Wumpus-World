@@ -36,9 +36,11 @@ class MyAI ( Agent ):
         self.wumpusKilled = False
         self.started = False
         self.clockwise = False
+        self.backtracking = False
         self.grabbedGold = False
         self.turnCount = 0
-        self.pastMoves = [] #can use this for backtracking later, for now this is used to see if we've made a 180 degree turn 
+        self.pastTurns = [] # used to see if we've made a 180 degree turn 
+        self.pastMoves = [] # stack containing previous moves
         self.visited = {}
     '''
     Input: N/a
@@ -171,10 +173,10 @@ class MyAI ( Agent ):
     and should help prevent getting stuck
     '''
     def updateClockwise(self):
-        if self.pastMoves[-1] != "forward" and self.pastMoves[-2] != "forward":
-            if self.pastMoves[-1] == self.pastMoves[-2]:
+        if self.pastTurns[-1] != "forward" and self.pastTurns[-2] != "forward":
+            if self.pastTurns[-1] == self.pastTurns[-2]:
                 self.clockwise = not self.clockwise
-                self.pastMoves.clear()
+                self.pastTurns.clear()
         return self.clockwise
     
     '''
@@ -235,6 +237,9 @@ class MyAI ( Agent ):
     '''    
     def revertAction(self):
         #print('in revert')
+        #self.pastMoves.pop()
+        #self.visited.pop((self.row, self.col))
+
         self.worldMatrix[self.row][self.col] = -1
         if (self.direction == 'U'):
             self.maxRow = self.row -1
@@ -254,6 +259,8 @@ class MyAI ( Agent ):
     - This is the main function that will be called in order to find the best plan of action
     '''
     def getAction( self, stench, breeze, glitter, bump, scream ):
+        print("past moves:", self.pastMoves, "visited", self.visited)
+
         stench = False if ( self.wumpusKilled ) else stench
 
         if glitter:
@@ -264,18 +271,18 @@ class MyAI ( Agent ):
             self.turnCount += 1
             if self.clockwise:
                 self.updateDirection("right")
-                self.pastMoves.append("right")
+                self.pastTurns.append("right")
                 return Agent.Action.TURN_RIGHT
             else:    
                 self.updateDirection("left")
-                self.pastMoves.append("left")
+                self.pastTurns.append("left")
                 return Agent.Action.TURN_LEFT
 
         if (bump):
             #print('REVERT')
             self.revertAction()
         
-        if len(self.pastMoves) >= 2:
+        if len(self.pastTurns) >= 2:
             #print("Clockwise: ", self.updateClockwise())
             self.updateClockwise()
         
@@ -300,16 +307,22 @@ class MyAI ( Agent ):
                 #stench = False if ( self.wumpusKilled ) else stench
                 #self.updateMap(stench, breeze, glitter, bump, scream)
                 #print("scream: ", scream)
+                if (self.row, self.col) not in self.visited:
+                    self.pastMoves.append((self.row, self.col))       
+                    self.visited[(self.row, self.col)] = 1  
                 self.updateRowCol()
                 self.wumpusKilled = True
-                self.pastMoves.append("forward")
+                self.pastTurns.append("forward")
                 return Agent.Action.FORWARD
 
             #wumpus not shot, front still clear
             if not self.hasArrow:
                 self.started = True
+                if (self.row, self.col) not in self.visited:
+                    self.pastMoves.append((self.row, self.col))       
+                    self.visited[(self.row, self.col)] = 1 
                 self.updateRowCol()
-                self.pastMoves.append("forward")
+                self.pastTurns.append("forward") 
                 return Agent.Action.FORWARD
 
             #shoot the arrow, wumpus may be in front of us
@@ -328,18 +341,26 @@ class MyAI ( Agent ):
         #print("Safe? ", self.isFrontSafe(stench, breeze, glitter, bump, scream))
 
         if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream):
+            
+            if (self.row, self.col) not in self.visited:
+                self.pastMoves.append((self.row, self.col))       
+                self.visited[(self.row, self.col)] = 1  
+
+
             self.updateRowCol()
             self.started = True
-            self.pastMoves.append("forward")            
+            self.pastTurns.append("forward")   
             return Agent.Action.FORWARD
         elif self.clockwise:
             self.updateDirection("right")
-            self.pastMoves.append("right")
+            self.pastTurns.append("right")
             return Agent.Action.TURN_RIGHT
         else:    
             self.updateDirection("left")
-            self.pastMoves.append("left")
+            self.pastTurns.append("left")
             return Agent.Action.TURN_LEFT  
+
+
 
         '''
         trying to make scream and stench more general, instead of specific to start state
