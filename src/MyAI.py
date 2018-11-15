@@ -42,17 +42,6 @@ class MyAI ( Agent ):
         self.pastTurns = [] # used to see if we've made a 180 degree turn 
         self.pastMoves = [] # stack containing previous moves
         self.visited = {}
-    '''
-    Input: N/a
-
-    Output:
-        worldMatrix
-
-        -Prints out the matrix
-    '''
-    def printMap(self):
-        for row in self.worldMatrix:
-            print(row)
 
     '''
     Input:
@@ -215,13 +204,10 @@ class MyAI ( Agent ):
     Will update the map based on what is given in the input. 
     '''
     def updateMap(self,stench, breeze, glitter, bump, scream):
-        #print("update map")
         if (stench or breeze): #lowkey unsafe area
-            #print('breeze')
             self.worldMatrix[self.row][self.col] = 'S'
             self.updateSurroundingArea('P')
         else:
-            #print("got to this safe area")
             self.worldMatrix[self.row][self.col] = 'S'
             self.updateSurroundingArea('S')
 
@@ -236,10 +222,6 @@ class MyAI ( Agent ):
         - Only useful for setting the max bounds for the right and upper sides. 
     '''    
     def revertAction(self):
-        #print('in revert')
-        #self.pastMoves.pop()
-        #self.visited.pop((self.row, self.col))
-
         self.worldMatrix[self.row][self.col] = -1
         if (self.direction == 'U'):
             self.maxRow = self.row -1
@@ -279,34 +261,24 @@ class MyAI ( Agent ):
                 return Agent.Action.TURN_LEFT
 
         if (bump):
-            #print('REVERT')
             self.revertAction()
         
         if len(self.pastTurns) >= 2:
-            #print("Clockwise: ", self.updateClockwise())
             self.updateClockwise()
         
         self.updateMap(stench, breeze, glitter, bump, scream)
-        #print("update map called")
-        #self.printMap()
-        #print('row: ', self.row, 'col: ', self.col)
-        #print('direction: ', self.direction)
-        #print("Front safe?: ", self.isFrontSafe(stench, breeze, glitter, bump, scream))
         
         #start of game
         if self.row == 6 and self.col == 0 and not self.started:
             
             #dip if theres a chance of a pit
             if breeze:
-                #print("breeze: ", breeze)
                 return Agent.Action.CLIMB
 
             #wumpus shot, front clear
             if scream:
                 self.started = True
-                #stench = False if ( self.wumpusKilled ) else stench
-                #self.updateMap(stench, breeze, glitter, bump, scream)
-                #print("scream: ", scream)
+
                 if (self.row, self.col) not in self.visited:
                     self.pastMoves.append((self.row, self.col))       
                     self.visited[(self.row, self.col)] = 1  
@@ -327,25 +299,17 @@ class MyAI ( Agent ):
 
             #shoot the arrow, wumpus may be in front of us
             if stench and not self.wumpusKilled:
-                #print("stench: ", stench)
                 self.hasArrow = False
                 return Agent.Action.SHOOT
 
         #climb out if we've returned to start
         if self.row == 6 and self.col == 0 and self.started:
-            #print("Back to start")
             return Agent.Action.CLIMB
 
-
-        #print("Clear? ", self.isFrontClear())
-        #print("Safe? ", self.isFrontSafe(stench, breeze, glitter, bump, scream))
-
         if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream):
-            
             if (self.row, self.col) not in self.visited:
                 self.pastMoves.append((self.row, self.col))       
                 self.visited[(self.row, self.col)] = 1  
-
 
             self.updateRowCol()
             self.started = True
@@ -360,60 +324,6 @@ class MyAI ( Agent ):
             self.pastTurns.append("left")
             return Agent.Action.TURN_LEFT  
 
-
-
-        '''
-        trying to make scream and stench more general, instead of specific to start state
-        if scream:
-            #stench = False if ( self.wumpusKilled ) else stench
-            self.updateMap(stench, breeze, glitter, bump, scream)
-            print("scream: ", scream)
-            self.updateRowCol()
-            self.wumpusKilled = True
-
-            return Agent.Action.FORWARD
-
-        if stench and not self.wumpusKilled:
-            print("stench: ", stench)
-            if self.isFrontClear() and not self.isFrontSafe():
-                self.hasArrow = False
-                return Agent.Action.SHOOT
-            else:
-                return Agent.Action.TURN_LEFT'''
-
-        '''
-        if (bump):
-            print('REVERT')
-            self.revertAction()
-        print ( "Press 'w' to Move Forward  'a' to 'Turn Left' 'd' to 'Turn Right'" )
         
-        #Get Input
-        userInput = input ( 'Please input: ' ).strip()
-        while not userInput:
-            userInput = input().strip()
-        
-        # Return Action Associated with Input
-        if userInput[0] == 'w':
-            self.updateRowCol()
-            return Agent.Action.FORWARD
-            
-        if userInput[0] == 'a':
-            self.updateDirection('left')
-            return Agent.Action.TURN_LEFT
-            
-        if userInput[0] == 'd':
-            self.updateDirection('right')
-            return Agent.Action.TURN_RIGHT
-            
-        if userInput[0] == 's':
-            return Agent.Action.SHOOT
-            
-        if userInput[0] == 'g':
-            return Agent.Action.GRAB
-        return Agent.Action.CLIMB'''
-
-
-
-
         #python3 Main.py -f ./Worlds
         #to iterate through the worlds
