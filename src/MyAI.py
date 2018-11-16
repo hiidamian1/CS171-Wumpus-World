@@ -245,7 +245,7 @@ class MyAI ( Agent ):
     '''
 
     def isValid(self, row, col):
-        return (row, col) not in self.visited and self.worldMatrix[row][col] == 'S' and (row, col) not in self.visited
+        return (row, col) not in self.visited and self.worldMatrix[row][col] == 'S' and (row, col) not in self.visited and (row, col) != (self.row, self.col)
 
     '''
     Input:
@@ -274,27 +274,29 @@ class MyAI ( Agent ):
                 valid.append((row, col + 1))
 
         return valid
+    '''
+    Input:
+        - n/a
 
-    def getAction( self, stench, breeze, glitter, bump, scream ):
-        print("past locations:", self.pastLocations, "visited", self.visited)
-        print("backtracking:", self.backtracking)
-        print("looking for surrounding spots:", self.findSurrounding)
-        stench = False if ( self.wumpusKilled ) else stench
-        
-        if (bump):
-            self.revertAction()
-        
-        if len(self.pastTurns) >= 2:
-            self.updateClockwise()
+    Output:
+        - True or Flase
 
-        self.updateMap(stench, breeze, glitter, bump, scream)
+    - Checks to make sure at least two moves have been made. If so, we can safely see if the agent has made a 180 degree turn
+    '''
+    def checkForTurnAround(self):
+        return len(self.pastTurns) >= 2
+    
+    '''
+    Input:
+        - percepts
 
-        '''if (self.row, self.col) not in self.visited:
-            self.visited[(self.row, self.col)] = 1'''  
+    Output:
+        - Action
 
-        #start of game
-        if self.row == 6 and self.col == 0 and not self.started:
-            
+    - Actions to be taken in the starting square of the game. Can likely be generalized for regular use, 
+    - so we may not need this in the future
+    '''
+    def startOfGameAction(self, stench, breeze, glitter, bump, scream):            
             #dip if theres a chance of a pit
             if breeze:
                 return Agent.Action.CLIMB
@@ -307,39 +309,52 @@ class MyAI ( Agent ):
                 self.pastTurns.append("forward")
                 return Agent.Action.FORWARD
 
-            #wumpus not shot, front still clear
-            if not self.hasArrow:
-                self.started = True     
-                self.updateRowCol()
-                self.pastTurns.append("forward") 
-                return Agent.Action.FORWARD
-
             #shoot the arrow, wumpus may be in front of us
             if stench and not self.wumpusKilled:
                 self.hasArrow = False
                 return Agent.Action.SHOOT
 
-        #climb out if we've returned to start and no moves are left
-        if self.row == 6 and self.col == 0 and len(self.pastLocations) == 0:
-            return Agent.Action.CLIMB
-
-        #backtracking and need to find spots
-        if self.backtracking and self.findSurrounding:
-            self.findSurrounding = False
-            validLocations = self.checkSurrounding(self.pastLocations[-1])
-            if len(validLocations) > 0:
-                self.backTracking = False
-                for location in validLocations:
-                    if location != (self.row, self.col):
-                        self.pastLocations.append(location)
+            self.started = True     
             self.updateRowCol()
+            self.pastTurns.append("forward") 
             return Agent.Action.FORWARD
 
-        if self.backtracking:
-            print("going to new locations")
-            #go to new locations on stack
+    '''
+    Input:
+        - N/A
 
-        #movement logic
+    Output:
+        - Action
+
+    - Finds alternate locations are the most recently visited location on the stack (the one before your current spot) 
+    - and moves the agent back one spot. From here, the agent should start exploring the child/alternate spots on the
+    - pastLocations stack
+    '''
+
+    def backtrack(self):
+        print("finding alternate locations")
+        validLocations = self.checkSurrounding(self.pastLocations[-1])
+        if len(validLocations) > 0:
+            self.findSurrounding = False
+            #self.backTracking = False
+            for location in validLocations:
+                self.pastLocations.append(location)
+
+        self.pastTurns.append("forward")   
+        self.updateRowCol()
+        return Agent.Action.FORWARD
+
+    '''
+    Input:
+        - percepts
+
+    Output:
+        - Action
+
+    - Will move the agent forwards if possible, or turn him right or left 
+    '''
+
+    def move(self, stench, breeze, glitter, bump, scream):
         if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream):
             if (self.row, self.col) not in self.visited:
                 self.visited[(self.row, self.col)] = 1  
@@ -358,6 +373,43 @@ class MyAI ( Agent ):
             self.pastTurns.append("left")
             return Agent.Action.TURN_LEFT 
 
+    def getAction( self, stench, breeze, glitter, bump, scream ):
+        print("past locations:", self.pastLocations, "visited", self.visited)
+        print("backtracking:", self.backtracking)
+        print("looking for surrounding spots:", self.findSurrounding)
+        
+        stench = False if ( self.wumpusKilled ) else stench
+        
+        if (bump):
+            self.revertAction()
+        
+        if self.checkForTurnAround():
+            self.updateClockwise()
+
+        self.updateMap(stench, breeze, glitter, bump, scream)
+
+        '''if (self.row, self.col) not in self.visited:
+            self.visited[(self.row, self.col)] = 1'''  
+
+        #start of game
+        if self.row == 6 and self.col == 0 and not self.started:
+            return self.startOfGameAction(stench, breeze, glitter, bump, scream)
+
+        #climb out if we've returned to start and no moves are left
+        if self.row == 6 and self.col == 0 and len(self.pastLocations) == 0:
+            return Agent.Action.CLIMB
+        
+        #backtracking and need to find spots
+        if self.backtracking and self.findSurrounding:
+            return self.backtrack()
+
+        if self.backtracking:
+            print("going to new locations")
+            #go to new locations on stack
+
+        #movement logic
+        return self.move(stench, breeze, glitter, bump, scream)
+    
 
     '''
     Input:
