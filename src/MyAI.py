@@ -40,8 +40,9 @@ class MyAI ( Agent ):
         self.grabbedGold = False
         self.turnCount = 0
         self.pastTurns = [] # used to see if we've made a 180 degree turn 
-        self.pastMoves = [] # stack containing previous moves
-        self.visited = {}
+        self.pastLocations = [(6,0)] # stack containing previous spots
+        self.visited = {(6,0): 1}
+        self.findSurrounding = False
 
     '''
     Input:
@@ -166,6 +167,8 @@ class MyAI ( Agent ):
             if self.pastTurns[-1] == self.pastTurns[-2]:
                 self.clockwise = not self.clockwise
                 self.pastTurns.clear()
+                self.backtracking = True
+                self.findSurrounding = True
         return self.clockwise
     
     '''
@@ -230,6 +233,131 @@ class MyAI ( Agent ):
         elif (self.direction == 'R'):
             self.maxCol = self.col -1
             self.col -= 1
+    
+    '''
+    Input:
+        - row, col
+
+    Output:
+        - True or False
+
+    - Will check to see if the provided (row, col) is valid to move to (we haven't already visited it, and is known to be safe)
+    '''
+
+    def isValid(self, row, col):
+        return (row, col) not in self.visited and self.worldMatrix[row][col] == 'S' and (row, col) not in self.visited
+
+    '''
+    Input:
+        - row, col
+
+    Output:
+        - List of valid (x, y) coords
+
+    - Will check to see if the provided (row, col) have valid "child nodes"/spots around them. For use in DFS.
+    '''
+    def checkSurrounding(self, rowCol):
+        valid = []
+        row = rowCol[0]
+        col = rowCol[1]
+        if row != 6:
+            if self.isValid(row + 1, col):
+                valid.append((row + 1, col))
+        if row != self.maxRow:
+            if self.isValid(row - 1, col):
+                valid.append((row - 1, col))
+        if col != 0:
+            if self.isValid(row, col - 1):
+                valid.append((row, col - 1))
+        if col != self.maxCol:
+            if self.isValid(row, col + 1):
+                valid.append((row, col + 1))
+
+        return valid
+
+    def getAction( self, stench, breeze, glitter, bump, scream ):
+        print("past locations:", self.pastLocations, "visited", self.visited)
+        print("backtracking:", self.backtracking)
+        print("looking for surrounding spots:", self.findSurrounding)
+        stench = False if ( self.wumpusKilled ) else stench
+        
+        if (bump):
+            self.revertAction()
+        
+        if len(self.pastTurns) >= 2:
+            self.updateClockwise()
+
+        self.updateMap(stench, breeze, glitter, bump, scream)
+
+        '''if (self.row, self.col) not in self.visited:
+            self.visited[(self.row, self.col)] = 1'''  
+
+        #start of game
+        if self.row == 6 and self.col == 0 and not self.started:
+            
+            #dip if theres a chance of a pit
+            if breeze:
+                return Agent.Action.CLIMB
+
+            #wumpus shot, front clear
+            if scream:
+                self.started = True      
+                self.updateRowCol()
+                self.wumpusKilled = True
+                self.pastTurns.append("forward")
+                return Agent.Action.FORWARD
+
+            #wumpus not shot, front still clear
+            if not self.hasArrow:
+                self.started = True     
+                self.updateRowCol()
+                self.pastTurns.append("forward") 
+                return Agent.Action.FORWARD
+
+            #shoot the arrow, wumpus may be in front of us
+            if stench and not self.wumpusKilled:
+                self.hasArrow = False
+                return Agent.Action.SHOOT
+
+        #climb out if we've returned to start and no moves are left
+        if self.row == 6 and self.col == 0 and len(self.pastLocations) == 0:
+            return Agent.Action.CLIMB
+
+        #backtracking and need to find spots
+        if self.backtracking and self.findSurrounding:
+            self.findSurrounding = False
+            validLocations = self.checkSurrounding(self.pastLocations[-1])
+            if len(validLocations) > 0:
+                self.backTracking = False
+                for location in validLocations:
+                    if location != (self.row, self.col):
+                        self.pastLocations.append(location)
+            self.updateRowCol()
+            return Agent.Action.FORWARD
+
+        if self.backtracking:
+            print("going to new locations")
+            #go to new locations on stack
+
+        #movement logic
+        if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream):
+            if (self.row, self.col) not in self.visited:
+                self.visited[(self.row, self.col)] = 1  
+                self.pastLocations.append((self.row, self.col))       
+
+            self.updateRowCol()
+            #self.started = True
+            self.pastTurns.append("forward")   
+            return Agent.Action.FORWARD
+        elif self.clockwise:
+            self.updateDirection("right")
+            self.pastTurns.append("right")
+            return Agent.Action.TURN_RIGHT
+        else:    
+            self.updateDirection("left")
+            self.pastTurns.append("left")
+            return Agent.Action.TURN_LEFT 
+
 
     '''
     Input:
@@ -239,8 +367,7 @@ class MyAI ( Agent ):
         - Action
 
     - This is the main function that will be called in order to find the best plan of action
-    '''
-    def getAction( self, stench, breeze, glitter, bump, scream ):
+        def getAction( self, stench, breeze, glitter, bump, scream ):
         print("past moves:", self.pastMoves, "visited", self.visited)
 
         stench = False if ( self.wumpusKilled ) else stench
@@ -306,6 +433,17 @@ class MyAI ( Agent ):
         if self.row == 6 and self.col == 0 and self.started:
             return Agent.Action.CLIMB
 
+        if len(self.checkSurrounding(row, col)) == 0:
+            self.backtracking = True
+            if self.clockwise:
+                self.updateDirection("right")
+                self.pastTurns.append("right")
+                return Agent.Action.TURN_RIGHT
+            else:
+                self.updateDirection("left")
+                self.pastTurns.append("left")
+                return Agent.Action.TURN_LEFT               
+
         if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream):
             if (self.row, self.col) not in self.visited:
                 self.pastMoves.append((self.row, self.col))       
@@ -324,6 +462,6 @@ class MyAI ( Agent ):
             self.pastTurns.append("left")
             return Agent.Action.TURN_LEFT  
 
-        
+        '''
         #python3 Main.py -f ./Worlds
         #to iterate through the worlds
