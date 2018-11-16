@@ -40,7 +40,7 @@ class MyAI ( Agent ):
         self.grabbedGold = False
         self.turnCount = 0
         self.pastTurns = [] # used to see if we've made a 180 degree turn 
-        self.pastLocations = [(6,0)] # stack containing previous spots
+        self.locations = [(6,0)] # stack containing previous spots
         self.visited = {(6,0): 1}
         self.findSurrounding = False
 
@@ -328,21 +328,24 @@ class MyAI ( Agent ):
 
     - Finds alternate locations are the most recently visited location on the stack (the one before your current spot) 
     - and moves the agent back one spot. From here, the agent should start exploring the child/alternate spots on the
-    - pastLocations stack
+    - locations stack
     '''
 
     def backtrack(self, stench, breeze, glitter, bump, scream):
-        print("finding alternate locations")
-        validLocations = self.checkSurrounding(self.pastLocations[-1])
+        print("in backtrack(), finding alternate locations")
+        validLocations = self.checkSurrounding(self.locations[-1])
         if len(validLocations) > 0:
+            print("locations found, disable search surroundings (self.findSurrounding = False)")
             self.findSurrounding = False
             #self.backTracking = False
             for location in validLocations:
-                self.pastLocations.append(location)
+                self.locations.append(location)
             self.pastTurns.append("forward")   
             self.updateRowCol()
             return Agent.Action.FORWARD
         else:
+            print("no locations found, keep searching (self.findSurrounding = True)")
+            self.locations.pop()
             return self.move(stench, breeze, glitter, bump, scream)
 
     '''
@@ -358,8 +361,8 @@ class MyAI ( Agent ):
     def move(self, stench, breeze, glitter, bump, scream):
         if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream):
             if (self.row, self.col) not in self.visited:
-                self.visited[(self.row, self.col)] = 1  
-                self.pastLocations.append((self.row, self.col))       
+                #self.visited[(self.row, self.col)] = 1  
+                self.locations.append((self.row, self.col))       
 
             self.updateRowCol()
             #self.started = True
@@ -374,11 +377,21 @@ class MyAI ( Agent ):
             self.pastTurns.append("left")
             return Agent.Action.TURN_LEFT 
 
+    '''
+    Input:
+        - stench, breeze, glitter, bump, scream
+
+    Output:
+        - Action
+
+    - This is the main function that will be called in order to find the best plan of action
+    '''
     def getAction( self, stench, breeze, glitter, bump, scream ):
-        print("past locations:", self.pastLocations, "visited", self.visited)
-        print("backtracking:", self.backtracking)
-        print("looking for surrounding spots:", self.findSurrounding)
-        
+        print("past locations:", self.locations, "visited", self.visited)
+
+        if (self.row, self.col) not in self.visited:
+            self.visited[(self.row, self.col)] = 1
+
         stench = False if ( self.wumpusKilled ) else stench
         
         if (bump):
@@ -386,6 +399,9 @@ class MyAI ( Agent ):
         
         if self.checkForTurnAround():
             self.updateClockwise()
+        print("clockwise:", self.clockwise)
+        print("backtracking:", self.backtracking)
+        print("looking for surrounding spots:", self.findSurrounding)
 
         self.updateMap(stench, breeze, glitter, bump, scream)
 
@@ -397,7 +413,7 @@ class MyAI ( Agent ):
             return self.startOfGameAction(stench, breeze, glitter, bump, scream)
 
         #climb out if we've returned to start and no moves are left
-        if self.row == 6 and self.col == 0 and len(self.pastLocations) == 0:
+        if self.row == 6 and self.col == 0 and len(self.locations) == 0:
             return Agent.Action.CLIMB
         
         #backtracking and need to find spots
@@ -405,29 +421,46 @@ class MyAI ( Agent ):
             return self.backtrack(stench, breeze, glitter, bump, scream)
 
         if self.backtracking:
-            print("going to new locations")
+            print("going to new locations, disable backtracking (self.backtracking = False)")
             self.backtracking = False
             #go to new locations on stack
-            newLocation = self.pastLocations[-1]
+            newLocation = self.locations[-1]
 
             if self.row - newLocation[0] == 1:
                 if self.clockwise:
+                    self.updateDirection("right")
+                    self.pastTurns.append("right")
                     return Agent.Action.TURN_RIGHT
+                self.updateDirection("left")
+                self.pastTurns.append("left")
                 return Agent.Action.TURN_LEFT
             if self.row - newLocation[0] == -1:
                 if self.clockwise:
+                    self.updateDirection("left")
+                    self.pastTurns.append("left")
                     return Agent.Action.TURN_LEFT
+                self.updateDirection("right")
+                self.pastTurns.append("right")
                 return Agent.Action.TURN_RIGHT
             if self.col - newLocation[1] == 1:
                 if self.clockwise:
+                    self.updateDirection("right")
+                    self.pastTurns.append("right")
                     return Agent.Action.TURN_RIGHT
+                self.updateDirection("left")
+                self.pastTurns.append("left")
                 return Agent.Action.TURN_LEFT
             if self.col - newLocation[1] == -1:
                 if self.clockwise:
+                    self.updateDirection("left")
+                    self.pastTurns.append("left")
                     return Agent.Action.TURN_LEFT
+                self.updateDirection("right")
+                self.pastTurns.append("right")
                 return Agent.Action.TURN_RIGHT
 
         #movement logic
+        print("moving, getAction")
         return self.move(stench, breeze, glitter, bump, scream)
     
 
