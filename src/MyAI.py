@@ -331,7 +331,7 @@ class MyAI ( Agent ):
     - pastLocations stack
     '''
 
-    def backtrack(self):
+    def backtrack(self, stench, breeze, glitter, bump, scream):
         print("finding alternate locations")
         validLocations = self.checkSurrounding(self.pastLocations[-1])
         if len(validLocations) > 0:
@@ -339,10 +339,11 @@ class MyAI ( Agent ):
             #self.backTracking = False
             for location in validLocations:
                 self.pastLocations.append(location)
-
-        self.pastTurns.append("forward")   
-        self.updateRowCol()
-        return Agent.Action.FORWARD
+            self.pastTurns.append("forward")   
+            self.updateRowCol()
+            return Agent.Action.FORWARD
+        else:
+            return self.move(stench, breeze, glitter, bump, scream)
 
     '''
     Input:
@@ -401,11 +402,30 @@ class MyAI ( Agent ):
         
         #backtracking and need to find spots
         if self.backtracking and self.findSurrounding:
-            return self.backtrack()
+            return self.backtrack(stench, breeze, glitter, bump, scream)
 
         if self.backtracking:
             print("going to new locations")
+            self.backtracking = False
             #go to new locations on stack
+            newLocation = self.pastLocations[-1]
+
+            if self.row - newLocation[0] == 1:
+                if self.clockwise:
+                    return Agent.Action.TURN_RIGHT
+                return Agent.Action.TURN_LEFT
+            if self.row - newLocation[0] == -1:
+                if self.clockwise:
+                    return Agent.Action.TURN_LEFT
+                return Agent.Action.TURN_RIGHT
+            if self.col - newLocation[1] == 1:
+                if self.clockwise:
+                    return Agent.Action.TURN_RIGHT
+                return Agent.Action.TURN_LEFT
+            if self.col - newLocation[1] == -1:
+                if self.clockwise:
+                    return Agent.Action.TURN_LEFT
+                return Agent.Action.TURN_RIGHT
 
         #movement logic
         return self.move(stench, breeze, glitter, bump, scream)
