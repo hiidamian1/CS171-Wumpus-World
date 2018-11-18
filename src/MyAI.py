@@ -227,7 +227,7 @@ class MyAI ( Agent ):
         - Only useful for setting the max bounds for the right and upper sides. 
     '''    
     def revertAction(self):
-        print("revert")
+        #print("revert")
         self.locations.pop()
         self.visited.pop((self.row, self.col))
         
@@ -339,10 +339,10 @@ class MyAI ( Agent ):
     '''
 
     def backtrack(self):
-        print("in backtrack(), finding alternate locations")
+        #print("in backtrack(), finding alternate locations")
 
         if self.stuck:
-            print("getting unstuck")
+            #print("getting unstuck")
             self.locations.pop()
             self.updateRowCol()
             self.pastTurns.append("forward")
@@ -351,14 +351,14 @@ class MyAI ( Agent ):
 
 
         if (self.row, self.col) != self.locations[-1]:
-            print("catchup")
+            #print("catchup")
             return self.goTo(self.locations[-1])
 
         if self.findSurrounding:
-            print("searching for locations around ", self.locations[-1])
+            #print("searching for locations around ", self.locations[-1])
             validLocation = self.checkSurrounding(self.locations[-1])
             if validLocation != (-1, -1):
-                print("location found, ", validLocation)
+                #print("location found, ", validLocation)
                 self.findSurrounding = False
                 self.locations.append(validLocation)
                 self.backtracking = False
@@ -366,7 +366,7 @@ class MyAI ( Agent ):
                 #if self.pastTurns[-1] != "forward":
                 self.locations.pop()
         if len(self.locations) > 0:
-            print("backtracking to ", self.locations[-1])
+            #print("backtracking to ", self.locations[-1])
             return self.goTo(self.locations[-1])
         else:
             return Agent.Action.CLIMB
@@ -465,7 +465,7 @@ class MyAI ( Agent ):
         '''if self.backtracking:
             self.locations.pop() #remove place we got stuck at'''
 
-        print("GOTO FORWARD")
+        #print("GOTO FORWARD")
         self.updateRowCol()
         self.pastTurns.append("forward")
         return Agent.Action.FORWARD
@@ -482,10 +482,10 @@ class MyAI ( Agent ):
     def addLocation(self):
         if (self.row, self.col) not in self.visited:
             self.visited[(self.row, self.col)] = 1 
-            print("added ", self.row, ", ", self.col, "to visited") 
+            #print("added ", self.row, ", ", self.col, "to visited") 
             if (self.row, self.col) != self.locations[-1]:
                 self.locations.append((self.row, self.col))
-                print("added ", self.row, ", ", self.col, "to locations") 
+                #print("added ", self.row, ", ", self.col, "to locations") 
 
 
     '''
@@ -502,8 +502,8 @@ class MyAI ( Agent ):
 
         self.addLocation()
 
-        print("past locations:", self.locations, "visited", self.visited)
-        print("row: ", self.row, "col: ", self.col)
+        #print("past locations:", self.locations, "visited", self.visited)
+        #print("row: ", self.row, "col: ", self.col)
 
         if (bump):
             self.revertAction()
@@ -511,9 +511,9 @@ class MyAI ( Agent ):
         if self.checkForTurnAround():
             self.updateClockwise()
 
-        print("clockwise:", self.clockwise)
-        print("backtracking:", self.backtracking)
-        print("looking for surrounding spots:", self.findSurrounding)
+        #print("clockwise:", self.clockwise)
+        #print("backtracking:", self.backtracking)
+        #print("looking for surrounding spots:", self.findSurrounding)
 
         self.updateMap(stench, breeze, glitter, bump, scream)
 
@@ -552,7 +552,7 @@ class MyAI ( Agent ):
 
 
         #movement logic
-        print("moving, getAction")
+        #print("moving, getAction")
         return self.move(stench, breeze, glitter, bump, scream)
     
 
