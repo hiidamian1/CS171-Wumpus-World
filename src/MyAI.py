@@ -33,6 +33,7 @@ class MyAI ( Agent ):
         self.direction = 'R'
         self.maxRow, self.maxCol = 0,6
         self.hasArrow = True
+        self.justShot = False
         self.wumpusKilled = False
         self.started = False
         self.clockwise = False
@@ -363,7 +364,6 @@ class MyAI ( Agent ):
                 self.locations.append(validLocation)
                 self.backtracking = False
             else:
-                #if self.pastTurns[-1] != "forward":
                 self.locations.pop()
         if len(self.locations) > 0:
             #print("backtracking to ", self.locations[-1])
@@ -396,6 +396,7 @@ class MyAI ( Agent ):
     '''
 
     def move(self, stench, breeze, glitter, bump, scream):
+
         if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream) and self.isNotVisited():     
             #self.addLocation()
             self.updateRowCol()
@@ -462,9 +463,6 @@ class MyAI ( Agent ):
                 self.pastTurns.append("right")
                 return Agent.Action.TURN_RIGHT
 
-        '''if self.backtracking:
-            self.locations.pop() #remove place we got stuck at'''
-
         #print("GOTO FORWARD")
         self.updateRowCol()
         self.pastTurns.append("forward")
@@ -487,6 +485,20 @@ class MyAI ( Agent ):
                 self.locations.append((self.row, self.col))
                 #print("added ", self.row, ", ", self.col, "to locations") 
 
+    def handleShot(self, stench, breeze, glitter, bump, scream):
+        if scream:
+            self.wumpusKilled = True
+
+        if not self.started:
+            self.started = True
+        
+        if breeze:
+            return self.move(stench, breeze, glitter, bump, scream)
+        else:
+            self.updateRowCol()
+            self.pastTurns.append("forward")
+            return Agent.Action.FORWARD
+
 
     '''
     Input:
@@ -498,6 +510,10 @@ class MyAI ( Agent ):
     - This is the main function that will be called in order to find the best plan of action
     '''
     def getAction( self, stench, breeze, glitter, bump, scream ):
+        if self.justShot:
+            self.justShot = False
+            return self.handleShot(stench, breeze, glitter, bump, scream)
+        
         stench = False if ( self.wumpusKilled ) else stench
 
         self.addLocation()
@@ -515,10 +531,7 @@ class MyAI ( Agent ):
         #print("backtracking:", self.backtracking)
         #print("looking for surrounding spots:", self.findSurrounding)
 
-        self.updateMap(stench, breeze, glitter, bump, scream)
-
-        '''if (self.row, self.col) not in self.visited:
-            self.visited[(self.row, self.col)] = 1'''  
+        self.updateMap(stench, breeze, glitter, bump, scream)  
 
         if glitter:
             self.grabbedGold = True
@@ -527,157 +540,31 @@ class MyAI ( Agent ):
         if self.row == 6 and self.col == 0 and self.grabbedGold:
             return Agent.Action.CLIMB
 
+        if not self.started and breeze:
+            return Agent.Action.CLIMB
+
+        if stench and not self.wumpusKilled and self.hasArrow and self.isFrontClear():
+            self.hasArrow = False
+            self.justShot = True
+            print("about to shoot, direction: ", self.direction)
+            return Agent.Action.SHOOT
+
         #start of game
-        if self.row == 6 and self.col == 0 and not self.started:
-            return self.startOfGameAction(stench, breeze, glitter, bump, scream)
+        '''if self.row == 6 and self.col == 0 and not self.started:
+            return self.startOfGameAction(stench, breeze, glitter, bump, scream)'''
 
         #climb out if we've returned to start and no moves are left
         if self.row == 6 and self.col == 0 and len(self.locations) == 0:
             return Agent.Action.CLIMB
-        
-        ############################## S T A R T ##############################
-
-        #backtracking and need to find spots
-        '''if self.backtracking and self.findSurrounding:
-            #self.locations.pop() #remove place we got stuck at
-            if (len(self.locations) >= 2):
-                print("2 top of stack, searching: ", self.locations[-2])
-            else:
-                print("1 top of stack, searching: ", self.locations[-1])
-
-            return self.backtrack(stench, breeze, glitter, bump, scream)'''
 
         if self.backtracking:
             return self.backtrack()
 
-
         #movement logic
         #print("moving, getAction")
+        if not self.started:
+            self.started = True
         return self.move(stench, breeze, glitter, bump, scream)
     
-
-    ############# E N D ############
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    '''
-    Input:
-        - stench, breeze, glitter, bump, scream
-
-    Output:
-        - Action
-
-    - This is the main function that will be called in order to find the best plan of action
-        def getAction( self, stench, breeze, glitter, bump, scream ):
-        print("past moves:", self.pastMoves, "visited", self.visited)
-
-        stench = False if ( self.wumpusKilled ) else stench
-
-        if glitter:
-            self.grabbedGold = True
-            return Agent.Action.GRAB
-
-        if self.grabbedGold and self.turnCount < 2:
-            self.turnCount += 1
-            if self.clockwise:
-                self.updateDirection("right")
-                self.pastTurns.append("right")
-                return Agent.Action.TURN_RIGHT
-            else:    
-                self.updateDirection("left")
-                self.pastTurns.append("left")
-                return Agent.Action.TURN_LEFT
-
-        if (bump):
-            self.revertAction()
-        
-        if len(self.pastTurns) >= 2:
-            self.updateClockwise()
-        
-        self.updateMap(stench, breeze, glitter, bump, scream)
-        
-        #start of game
-        if self.row == 6 and self.col == 0 and not self.started:
-            
-            #dip if theres a chance of a pit
-            if breeze:
-                return Agent.Action.CLIMB
-
-            #wumpus shot, front clear
-            if scream:
-                self.started = True
-
-                if (self.row, self.col) not in self.visited:
-                    self.pastMoves.append((self.row, self.col))       
-                    self.visited[(self.row, self.col)] = 1  
-                self.updateRowCol()
-                self.wumpusKilled = True
-                self.pastTurns.append("forward")
-                return Agent.Action.FORWARD
-
-            #wumpus not shot, front still clear
-            if not self.hasArrow:
-                self.started = True
-                if (self.row, self.col) not in self.visited:
-                    self.pastMoves.append((self.row, self.col))       
-                    self.visited[(self.row, self.col)] = 1 
-                self.updateRowCol()
-                self.pastTurns.append("forward") 
-                return Agent.Action.FORWARD
-
-            #shoot the arrow, wumpus may be in front of us
-            if stench and not self.wumpusKilled:
-                self.hasArrow = False
-                return Agent.Action.SHOOT
-
-        #climb out if we've returned to start
-        if self.row == 6 and self.col == 0 and self.started:
-            return Agent.Action.CLIMB
-
-        if len(self.checkSurrounding(row, col)) == 0:
-            self.backtracking = True
-            if self.clockwise:
-                self.updateDirection("right")
-                self.pastTurns.append("right")
-                return Agent.Action.TURN_RIGHT
-            else:
-                self.updateDirection("left")
-                self.pastTurns.append("left")
-                return Agent.Action.TURN_LEFT               
-
-        if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream):
-            if (self.row, self.col) not in self.visited:
-                self.pastMoves.append((self.row, self.col))       
-                self.visited[(self.row, self.col)] = 1  
-
-            self.updateRowCol()
-            self.started = True
-            self.pastTurns.append("forward")   
-            return Agent.Action.FORWARD
-        elif self.clockwise:
-            self.updateDirection("right")
-            self.pastTurns.append("right")
-            return Agent.Action.TURN_RIGHT
-        else:    
-            self.updateDirection("left")
-            self.pastTurns.append("left")
-            return Agent.Action.TURN_LEFT  
-
-        '''
         #python3 Main.py -f ./Worlds
         #to iterate through the worlds
