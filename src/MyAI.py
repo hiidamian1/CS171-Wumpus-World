@@ -39,7 +39,8 @@ class MyAI ( Agent ):
         self.clockwise = False
         self.backtracking = False
         self.stuck = False
-        self.grabbedGold = False
+        self.justGrabbedGold = False
+        self.hasGold = False
         self.turnCount = 0
         self.pastTurns = [] # used to see if we've made a 180 degree turn 
         self.locations = [(6,0)] # stack containing previous spots
@@ -170,7 +171,10 @@ class MyAI ( Agent ):
                 self.clockwise = not self.clockwise
                 self.pastTurns.clear()
                 self.backtracking = True
-                self.findSurrounding = True
+                if not self.hasGold:
+                    self.findSurrounding = True
+                if self.justGrabbedGold:
+                    self.justGrabbedGold = False
                 self.stuck = True
         return self.clockwise
     
@@ -340,7 +344,7 @@ class MyAI ( Agent ):
     '''
 
     def backtrack(self):
-        #print("in backtrack(), finding alternate locations")
+        #print("in backtrack()")
 
         if self.stuck:
             #print("getting unstuck")
@@ -365,6 +369,8 @@ class MyAI ( Agent ):
                 self.backtracking = False
             else:
                 self.locations.pop()
+        else:
+            self.locations.pop()
         if len(self.locations) > 0:
             #print("backtracking to ", self.locations[-1])
             return self.goTo(self.locations[-1])
@@ -397,7 +403,7 @@ class MyAI ( Agent ):
 
     def move(self, stench, breeze, glitter, bump, scream):
 
-        if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream) and self.isNotVisited():     
+        if self.isFrontClear() and self.isFrontSafe(stench, breeze, glitter, bump, scream) and self.isNotVisited() and not self.justGrabbedGold:     
             #self.addLocation()
             self.updateRowCol()
             #self.started = True
@@ -485,7 +491,75 @@ class MyAI ( Agent ):
                 self.locations.append((self.row, self.col))
                 #print("added ", self.row, ", ", self.col, "to locations") 
 
-    def handleShot(self, stench, breeze, glitter, bump, scream):
+    '''
+    Input:
+        - stench, breeze, glitter, bump, scream
+
+    Output:
+        - Action
+
+    - This is the main function that will be called in order to find the best plan of action
+    '''
+    def getAction( self, stench, breeze, glitter, bump, scream ):
+        try:
+            '''if self.justShot:
+                self.justShot = False
+                return self.handleShot(stench, breeze, glitter, bump, scream)'''
+            
+            stench = False if ( self.wumpusKilled ) else stench
+
+            self.addLocation()
+
+            #print("past locations:", self.locations, "visited", self.visited)
+            #print("row: ", self.row, "col: ", self.col)
+
+            if (bump):
+                self.revertAction()
+            
+            if self.checkForTurnAround():
+                self.updateClockwise()
+
+            #print("clockwise:", self.clockwise)
+            #print("backtracking:", self.backtracking)
+            #print("looking for surrounding spots:", self.findSurrounding)
+
+            self.updateMap(stench, breeze, glitter, bump, scream)  
+
+            if glitter:
+                self.justGrabbedGold = True
+                self.hasGold = True
+                #self.backtracking = True
+                #self.locations.pop()
+                return Agent.Action.GRAB
+
+            if self.row == 6 and self.col == 0 and self.hasGold:
+                return Agent.Action.CLIMB
+
+            if not self.started and breeze:
+                return Agent.Action.CLIMB
+
+            #start of game
+            if self.row == 6 and self.col == 0 and not self.started:
+                return self.startOfGameAction(stench, breeze, glitter, bump, scream)
+
+            #climb out if we've returned to start and no moves are left
+            if self.row == 6 and self.col == 0 and len(self.locations) == 0:
+                return Agent.Action.CLIMB
+
+            if self.backtracking:
+                return self.backtrack()
+
+            #movement logic
+            #print("moving, getAction")
+            if not self.started:
+                self.started = True
+            return self.move(stench, breeze, glitter, bump, scream)
+        
+        except Exception as e :
+            print(e)
+    
+
+        '''def handleShot(self, stench, breeze, glitter, bump, scream):
         if scream:
             self.wumpusKilled = True
 
@@ -497,74 +571,14 @@ class MyAI ( Agent ):
         else:
             self.updateRowCol()
             self.pastTurns.append("forward")
-            return Agent.Action.FORWARD
+            return Agent.Action.FORWARD'''
 
-
-    '''
-    Input:
-        - stench, breeze, glitter, bump, scream
-
-    Output:
-        - Action
-
-    - This is the main function that will be called in order to find the best plan of action
-    '''
-    def getAction( self, stench, breeze, glitter, bump, scream ):
-        if self.justShot:
-            self.justShot = False
-            return self.handleShot(stench, breeze, glitter, bump, scream)
-        
-        stench = False if ( self.wumpusKilled ) else stench
-
-        self.addLocation()
-
-        #print("past locations:", self.locations, "visited", self.visited)
-        #print("row: ", self.row, "col: ", self.col)
-
-        if (bump):
-            self.revertAction()
-        
-        if self.checkForTurnAround():
-            self.updateClockwise()
-
-        #print("clockwise:", self.clockwise)
-        #print("backtracking:", self.backtracking)
-        #print("looking for surrounding spots:", self.findSurrounding)
-
-        self.updateMap(stench, breeze, glitter, bump, scream)  
-
-        if glitter:
-            self.grabbedGold = True
-            return Agent.Action.GRAB
-
-        if self.row == 6 and self.col == 0 and self.grabbedGold:
-            return Agent.Action.CLIMB
-
-        if not self.started and breeze:
-            return Agent.Action.CLIMB
-
-        if stench and not self.wumpusKilled and self.hasArrow and self.isFrontClear():
+        #code for shooting wumpus anywhere on map. didn't seem to help and only affects a small portion of the map,
+        #so I'll leave it down here for now. 
+        '''if stench and not self.wumpusKilled and self.hasArrow and self.isFrontClear() and not self.hasGold:
             self.hasArrow = False
             self.justShot = True
-            print("about to shoot, direction: ", self.direction)
-            return Agent.Action.SHOOT
+            return Agent.Action.SHOOT'''
 
-        #start of game
-        '''if self.row == 6 and self.col == 0 and not self.started:
-            return self.startOfGameAction(stench, breeze, glitter, bump, scream)'''
-
-        #climb out if we've returned to start and no moves are left
-        if self.row == 6 and self.col == 0 and len(self.locations) == 0:
-            return Agent.Action.CLIMB
-
-        if self.backtracking:
-            return self.backtrack()
-
-        #movement logic
-        #print("moving, getAction")
-        if not self.started:
-            self.started = True
-        return self.move(stench, breeze, glitter, bump, scream)
-    
         #python3 Main.py -f ./Worlds
         #to iterate through the worlds
