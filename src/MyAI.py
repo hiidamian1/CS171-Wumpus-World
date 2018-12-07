@@ -221,6 +221,10 @@ class MyAI ( Agent ):
             self.worldMatrix[self.row][self.col] = 'S'
             self.updateSurroundingArea('S')
 
+    def printMap(self):
+        for row in self.worldMatrix:
+            print(row)
+
     '''
     Input:
         - N/a
@@ -505,6 +509,8 @@ class MyAI ( Agent ):
             '''if self.justShot:
                 self.justShot = False
                 return self.handleShot(stench, breeze, glitter, bump, scream)'''
+
+            #self.printMap()
             
             stench = False if ( self.wumpusKilled ) else stench
 
@@ -558,6 +564,9 @@ class MyAI ( Agent ):
         except Exception as e :
             print(e)
     
+        #python3 Main.py -f ./Worlds
+        #to iterate through the worlds
+        
 
         '''def handleShot(self, stench, breeze, glitter, bump, scream):
         if scream:
@@ -580,5 +589,3 @@ class MyAI ( Agent ):
             self.justShot = True
             return Agent.Action.SHOOT'''
 
-        #python3 Main.py -f ./Worlds
-        #to iterate through the worlds
